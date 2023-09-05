@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -125,13 +126,17 @@ func (pitcherStore PitcherStore) getFile(w http.ResponseWriter, r *http.Request)
 	case filename, ok := <-pitcherStore.pitcherQueue:
 		{
 			if ok {
-				fmt.Print(filename)
-				fmt.Fprint(w, filename)
+				// remove path from filename
+
+				// set header
+				w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filename))
+				// serve file
+				http.ServeFile(w, r, filename)
+
 			} else {
 				log.Fatalf("Panic! ok was not true")
 			}
 		}
 	case <-time.After(50000 * time.Microsecond):
 	}
-
 }
