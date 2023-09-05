@@ -1,0 +1,9 @@
+version: "3.2"
+services:
+ glacier:
+    build: .
+    network_mode: host
+    volumes:
+    - /workspaces/FileQueueHTTP/data/:/workspaces/FileQueueHTTP/data/
+    environment:
+      SHARES: /workspaces/FileQueueHTTP/data/

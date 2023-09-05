@@ -5,6 +5,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 COPY main.go main.go
+COPY prometheus/prometheus.go prometheus/prometheus.go
 RUN CGO_ENABLED=0 go build -o /main
 
 

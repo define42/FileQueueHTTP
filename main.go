@@ -10,15 +10,26 @@ import (
 	"strings"
 	"time"
 
+	"FileQueueHTTP/prometheus"
+
 	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+func helloworld(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, "<html><center><h1>FileQueueHTTP</h1>")
+	fmt.Fprintf(w, "<center><a href=\"/metrics\">prometheus</a>")
+}
 
 func main() {
 
 	pitcherStore := PitcherStore{pitcherQueue: make(chan string, 10000000)}
 	go pitcherStore.run()
 
-	http.HandleFunc("/", pitcherStore.getFile)
+	http.HandleFunc("/", helloworld)
+	http.HandleFunc("/getfile", pitcherStore.getFile)
+	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -47,6 +58,8 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 		}
 		fmt.Println(file.Name())
 		pitcherStore.pitcherQueue <- path + "/" + file.Name()
+		prometheus.FileInQueue.Inc()
+		prometheus.FileAddedToChannel.Inc()
 
 	}
 
@@ -67,6 +80,8 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 				if event.Has(fsnotify.Create) && !IsHiddenFile(event.Name) {
 					pitcherStore.pitcherQueue <- event.Name
 					fmt.Println("New file: ", event.Name)
+					prometheus.FileInQueue.Inc()
+					prometheus.FileAddedToChannel.Inc()
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -116,6 +131,7 @@ func (pitcherStore PitcherStore) getFile(w http.ResponseWriter, r *http.Request)
 				if err != nil {
 					log.Printf("Error removing file %s", filename)
 				}
+				prometheus.FileInQueue.Dec()
 
 			} else {
 				w.WriteHeader(http.StatusNotFound)
