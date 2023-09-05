@@ -68,7 +68,8 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 			continue
 		}
 		fmt.Println(file.Name())
-		pitcherStore.pitcherQueue <- file.Name()
+		pitcherStore.pitcherQueue <- path + "/" + file.Name()
+
 	}
 
 	watcher, err := fsnotify.NewWatcher()
