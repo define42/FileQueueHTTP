@@ -13,33 +13,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func init() {
-	//   http.HandleFunc("/", handler)
-	// get env variable
-	shares := os.Getenv("SHARES")
-
-	if shares == "" {
-		log.Printf("No shares defined")
-		os.Exit(1)
-	}
-
-	if shares != "" {
-		//split shares by comma
-		shareslist := strings.Split(shares, ",")
-		//loop through shares
-		for _, share := range shareslist {
-			// check share esists
-			if _, err := os.Stat(share); os.IsNotExist(err) {
-				log.Printf("Share %s does not exist", share)
-			}
-		}
-	}
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
-}
-
 func main() {
 
 	pitcherStore := PitcherStore{pitcherQueue: make(chan string, 10000000)}
@@ -50,16 +23,20 @@ func main() {
 }
 
 type PitcherStore struct {
-	counters     map[string]int
 	pitcherQueue chan string
 }
 
 func IsHiddenFile(filename string) bool {
-	return filename[0] == '.'
+	return filepath.Base(filename)[0] == '.'
 }
 
 func (pitcherStore PitcherStore) shareThread(path string) {
 	fmt.Println(path)
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Printf("Share %s does not exist", path)
+	}
+
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
@@ -87,10 +64,9 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
-				if event.Has(fsnotify.Rename) {
-					log.Println("Renamed file:", event.Name)
+				if event.Has(fsnotify.Create) && !IsHiddenFile(event.Name) {
 					pitcherStore.pitcherQueue <- event.Name
+					fmt.Println("New file: ", event.Name)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -114,6 +90,12 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 func (pitcherStore PitcherStore) run() {
 
 	shares := os.Getenv("SHARES")
+
+	if shares == "" {
+		log.Printf("No shares defined")
+		os.Exit(1)
+	}
+
 	shareslist := strings.Split(shares, ",")
 	for _, share := range shareslist {
 		go pitcherStore.shareThread(share)
@@ -126,15 +108,17 @@ func (pitcherStore PitcherStore) getFile(w http.ResponseWriter, r *http.Request)
 	case filename, ok := <-pitcherStore.pitcherQueue:
 		{
 			if ok {
-				// remove path from filename
-
-				// set header
 				w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filename))
-				// serve file
 				http.ServeFile(w, r, filename)
 
+				// remove file
+				err := os.Remove(filename)
+				if err != nil {
+					log.Printf("Error removing file %s", filename)
+				}
+
 			} else {
-				log.Fatalf("Panic! ok was not true")
+				w.WriteHeader(http.StatusNotFound)
 			}
 		}
 	case <-time.After(50000 * time.Microsecond):
