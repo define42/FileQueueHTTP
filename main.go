@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 func init() {
@@ -39,7 +41,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	pitcherStore := PitcherStore{pitcherQueue: make(chan string, 1000)}
+	pitcherStore := PitcherStore{pitcherQueue: make(chan string, 10000000)}
 	go pitcherStore.run()
 
 	http.HandleFunc("/", pitcherStore.getFile)
@@ -51,19 +53,68 @@ type PitcherStore struct {
 	pitcherQueue chan string
 }
 
+func IsHiddenFile(filename string) bool {
+	return filename[0] == '.'
+}
+
+func (pitcherStore PitcherStore) shareThread(path string) {
+	fmt.Println(path)
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range files {
+		if IsHiddenFile(file.Name()) {
+			continue
+		}
+		fmt.Println(file.Name())
+		pitcherStore.pitcherQueue <- file.Name()
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	// Start listening for events.
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				log.Println("event:", event)
+				if event.Has(fsnotify.Rename) {
+					log.Println("Renamed file:", event.Name)
+					pitcherStore.pitcherQueue <- event.Name
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	// Add a path.
+	err = watcher.Add(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Block main goroutine forever.
+	<-make(chan struct{})
+}
+
 func (pitcherStore PitcherStore) run() {
 
 	shares := os.Getenv("SHARES")
 	shareslist := strings.Split(shares, ",")
 	for _, share := range shareslist {
-		files, err := ioutil.ReadDir(share)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, file := range files {
-			fmt.Println(file.Name())
-			pitcherStore.pitcherQueue <- file.Name()
-		}
+		go pitcherStore.shareThread(share)
 	}
 }
 
