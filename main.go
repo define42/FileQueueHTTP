@@ -18,8 +18,8 @@ import (
 
 func helloworld(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<html><center><h1>FileQueueHTTP</h1>")
-	fmt.Fprintf(w, "<center><a href=\"/metrics\">prometheus</a>")
+	fmt.Fprintf(w, "<html><title>FileQueueHTTP(v.RELEASE_DATE)</title><center><h1 style=\"color: red;\">FileQueueHTTP(v.RELEASE_DATE)</h1>")
+	fmt.Fprintf(w, "<center><a href=\"/metrics\">Prometheus</a>")
 }
 
 func main() {

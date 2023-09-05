@@ -15,6 +15,7 @@ jobs:
             echo $RELEASE_DATE
             docker images
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            sed -i s/RELEASE_DATE/\(v.$RELEASE_DATE\)/g main.go
             docker build -t $IMAGE_NAME:latest .
             docker push $IMAGE_NAME:latest
             docker build -t $IMAGE_NAME:$RELEASE_DATE .
