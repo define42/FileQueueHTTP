@@ -17,6 +17,10 @@ var (
 		Name: "file_in_queue",
 		Help: "The numbers of files in queue",
 	})
+	FilesDoNotExist = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "files_do_not_exist",
+		Help: "The numbers of files do not exist",
+	})
 )
 
 var ctx = context.Background()

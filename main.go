@@ -119,24 +119,34 @@ func (pitcherStore PitcherStore) run() {
 
 func (pitcherStore PitcherStore) getFile(w http.ResponseWriter, r *http.Request) {
 
-	select {
-	case filename, ok := <-pitcherStore.pitcherQueue:
-		{
-			if ok {
-				w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filename))
-				http.ServeFile(w, r, filename)
+	for {
+		select {
+		case filename, ok := <-pitcherStore.pitcherQueue:
+			{
+				if ok {
+					// check if file exists
+					if _, err := os.Stat(filename); os.IsNotExist(err) {
+						fmt.Println("File does not exist. Removing from queue.", filename)
+						prometheus.FilesDoNotExist.Inc()
+						continue
 
-				// remove file
-				err := os.Remove(filename)
-				if err != nil {
-					log.Printf("Error removing file %s", filename)
+					}
+					w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filename))
+					http.ServeFile(w, r, filename)
+
+					// remove file
+					err := os.Remove(filename)
+					if err != nil {
+						log.Printf("Error removing file %s", filename)
+					}
+					prometheus.FileInQueue.Dec()
+					return
+
+				} else {
+					w.WriteHeader(http.StatusNotFound)
 				}
-				prometheus.FileInQueue.Dec()
-
-			} else {
-				w.WriteHeader(http.StatusNotFound)
 			}
+		case <-time.After(50000 * time.Microsecond):
 		}
-	case <-time.After(50000 * time.Microsecond):
 	}
 }
