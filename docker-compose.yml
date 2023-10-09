@@ -7,3 +7,4 @@ services:
     - /workspaces/FileQueueHTTP/data/:/workspaces/FileQueueHTTP/data/
     environment:
       SHARES: /workspaces/FileQueueHTTP/data/
+      DISK_USAGE_ALLOWED: 10

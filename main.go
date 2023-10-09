@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"FileQueueHTTP/prometheus"
+
+	"github.com/shirou/gopsutil/disk"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -40,6 +44,8 @@ type PitcherStore struct {
 func IsHiddenFile(filename string) bool {
 	return filepath.Base(filename)[0] == '.'
 }
+
+var ctx = context.Background()
 
 func (pitcherStore PitcherStore) shareThread(path string) {
 	fmt.Println(path)
@@ -72,12 +78,29 @@ func (pitcherStore PitcherStore) shareThread(path string) {
 	// Start listening for events.
 	go func() {
 		for {
+
+			usageStat, err := disk.UsageWithContext(ctx, path)
+			if err != nil {
+				fmt.Println("Panic! Disk usage not working err:", err)
+			}
+
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
 					return
 				}
 				if event.Has(fsnotify.Create) && !IsHiddenFile(event.Name) {
+
+					if usageStat.UsedPercent > DiskUsageAllowed {
+						fmt.Println("Panic! UsedPercent:", usageStat.UsedPercent, " > DiskUsageAllowed:", DiskUsageAllowed, " Auto removing file:", event.Name)
+						err = os.Remove(event.Name)
+						if err != nil {
+							log.Printf("Panic! Error removing file %s", event.Name)
+						}
+						prometheus.FilesPruned.Inc()
+						continue
+					}
+
 					pitcherStore.pitcherQueue <- event.Name
 					fmt.Println("New file: ", event.Name)
 					prometheus.FileInQueue.Inc()
@@ -150,3 +173,18 @@ func (pitcherStore PitcherStore) getFile(w http.ResponseWriter, r *http.Request)
 		}
 	}
 }
+
+func getDiskUsageAllowed() float64 {
+	allowedDiskEnv, err := strconv.ParseFloat(os.Getenv("DISK_USAGE_ALLOWED"), 64)
+	if err != nil {
+		allowedDiskEnv = 75
+	}
+	if allowedDiskEnv < 5 || allowedDiskEnv > 99 {
+		fmt.Println("Panic! DISK_USAGE_ALLOWED not accepted. Only 5-99 is allowed")
+		allowedDiskEnv = 75
+	}
+	fmt.Println("DISK_USAGE_ALLOWED:", allowedDiskEnv, "%")
+	return allowedDiskEnv
+}
+
+var DiskUsageAllowed = getDiskUsageAllowed()

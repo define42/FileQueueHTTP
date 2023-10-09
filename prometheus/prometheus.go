@@ -21,6 +21,10 @@ var (
 		Name: "files_do_not_exist",
 		Help: "The numbers of files do not exist",
 	})
+	FilesPruned = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "files_pruned",
+		Help: "The numbers to prevent exceed DiskUsageAllowed",
+	})
 )
 
 var ctx = context.Background()
