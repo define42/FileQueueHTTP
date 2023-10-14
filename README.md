@@ -36,8 +36,8 @@ Key metrics include:
 version: "3.2"
 services:
  glacier:
-    build: .
-    network_mode: host # By default only uses tcp port 8080
+    build: define42/filequeuehttp
+    network_mode: host # By default only uses port tcp:8080
     volumes:
     - /workspaces/FileQueueHTTP/data/:/workspaces/FileQueueHTTP/data/  # folder thats watched
     environment:
