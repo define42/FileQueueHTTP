@@ -39,9 +39,10 @@ services:
     build: define42/filequeuehttp
     network_mode: host # By default only uses port tcp:8080
     volumes:
-    - /workspaces/FileQueueHTTP/data/:/workspaces/FileQueueHTTP/data/  # folder thats watched
+    - /data1/:/data1/  # folder thats watched
+    - /data2/:/data2/  # folder thats watched
     environment:
-      SHARES: /workspaces/FileQueueHTTP/data/  folder thats watched
+      SHARES: /data1/,/data2/  folders thats watched
       DISK_USAGE_ALLOWED: 90 # If watched folders diskusage exceeds 90% files will be pruned
 
 ```
