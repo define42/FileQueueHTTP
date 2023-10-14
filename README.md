@@ -30,3 +30,18 @@ Key metrics include:
 * Number of fetched files.
 * Number of files unable to fetch (typically due to pre-deletion).
 * Number of files pruned due to reaching the disk space limit.
+
+### Example of docker-compose.yml
+```
+version: "3.2"
+services:
+ glacier:
+    build: .
+    network_mode: host # By default only uses tcp port 8080
+    volumes:
+    - /workspaces/FileQueueHTTP/data/:/workspaces/FileQueueHTTP/data/  # folder thats watched
+    environment:
+      SHARES: /workspaces/FileQueueHTTP/data/  folder thats watched
+      DISK_USAGE_ALLOWED: 90 # If watched folders diskusage exceeds 90% files will be pruned
+
+```
