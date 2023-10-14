@@ -5,7 +5,7 @@ FileQueueHttp is a streamlined service created to streamline the process of dete
 Here are the key features:
 
 ### Automatic File Detection:
-FileQueueHttp uses inotify, a Linux kernel feature, to continuously monitor a specified folder/folders for the creation of new files.
+FileQueueHttp uses inotify, a Linux kernel feature, to continuously monitor specified folders for the creation of new files. Upon startup, it will automatically identify all existing files.
 
 ### FIFO Queue:
 Newly detected files are enqueued into a FIFO queue, ensuring that files are processed in the order they are received.
