@@ -26,10 +26,12 @@ The system will automatically prune files (remove and delete) from the queue and
 FileQueueHttp offers built-in Prometheus metrics, allowing you to monitor the application's performance and file management statistics.
 
 Key metrics include:
-* Number of files in the queue.
-* Number of fetched files.
-* Number of files unable to fetch (typically due to pre-deletion).
-* Number of files pruned due to reaching the disk space limit.
+* Number of files in the queue (file_in_queue)
+* Numbers of files added to queue ((file_added_to_channel) 
+* Number of files unable to fetch (typically due to pre-deletion) (files_do_not_exist)
+* Number of files pruned due to reaching the disk space limit (files_pruned)
+
+ Prometheus metrics are found at: http:/localhost:8080/metrics
 
 ### Example of docker-compose.yml
 ```
