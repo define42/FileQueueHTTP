@@ -1,6 +1,6 @@
 # FileQueueHTTP
 
-FileQueueHttp is a service designed to simplify detecting and queueing files, providing a seamless solution for detecting new files on disk, automatically saving them into a FIFO (First-In-First-Out) queue, and offering a simple web server API for fetching these files. 
+FileQueueHttp is a streamlined service created to streamline the process of detecting and queuing files. It offers a seamless solution for identifying new files on disk, automatically placing them in a FIFO queue, and provides a straightforward web server API for retrieving these files.
 
 Here are the key features:
 
@@ -46,5 +46,7 @@ services:
     environment:
       SHARES: /data1/,/data2/  folders thats watched
       DISK_USAGE_ALLOWED: 90 # If watched folders diskusage exceeds 90% files will be pruned
-
 ```
+
+### Fetching files from the service
+Retrieving files from the service is easily achieved by querying http://localhost:8080/getfile. A new file is received by each request.
